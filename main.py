@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from lzss3 import decompress_bytes
 from compress import compress_nlz11
 from parser import *
-from ccChartEdit import ExtractEvents, CreateChart
+from ccChartEdit import ExtractEvents, ExportEvents
 from midiTools import ExportMidi, ImportMidi
 
 import matplotlib.pyplot as plt
@@ -19,7 +19,7 @@ current_path = pathlib.Path(__file__).parent.resolve()
 base_path = "C:/Users/pc/3D Objects/DS - 3DS/romfs"
 mod_base_path = "C:/Users/pc/AppData/Roaming/Citra/load/mods/00040000000FCA00/romfs"
 
- 
+midi_to_import = "C:/Users/pc/Desktop/wha chart thffcc.mid"
 
 loaded_map = "0800_BMS_007" # the extreme
 
@@ -50,11 +50,14 @@ class ccfile:
             bytes = f.read()
             return decompress_bytes(bytes)
 
-    def write(self, data):
+    def write(self, data, compress_nlz11 = True):
         # create a "loaded_map" folder if nonexistent
         os.makedirs(self.path_modw_folder, exist_ok=True)
         with open(self.path_modw, "wb") as f:
-            compress_nlz11(data, f)
+            if compress_nlz11:
+                compress_nlz11(data, f)
+            else:
+                f.write(data)
 
     def checkBackup(self):
         if not os.path.exists(self.path_backup):
@@ -172,10 +175,9 @@ plt.scatter(time, lanes, s=10, c=point_colors)
 plt.tight_layout()
 # plt.show()
 
-current_file.write(test_data)
+# current_file.write(test_data)
 
-outmidi = ExportMidi(Events, current_path / "exportedeee.mid")
+# outmidi = ExportMidi(Events, current_path / "exportedeee.mid")
 
-imported_events = ImportMidi(outmidi)
-
-CreateChart(imported_events, current_path / "imported_events.lz")
+imported_events = ImportMidi(midi_to_import)
+em_chart_file.write(ExportEvents(imported_events))
