@@ -1,9 +1,57 @@
 from compress import compress_nlz11
-
+import os
+import shutil
+from lzss3 import decompress_bytes
 
 header = bytearray.fromhex(
     "01 00 00 00 15 25 00 00 00 00 00 00 15 25 00 00 E0 14 00 00 BF 16 00 00 BF 16 00 00 1C 1B 00 00 DD 19 00 00 DD 01 00 00"
     )
+
+class ccfile:
+    def __init__(self, name, base_path, loaded_map,mod_base_path):
+        self.name = name
+        self.path_original = f"{base_path}/music/{loaded_map}/{name}"
+        self.path_modw = f"{mod_base_path}/music/{loaded_map}/{name}"
+        self.path_modw_folder = f"{mod_base_path}/music/{loaded_map}"
+        self.path_mod = self.path_modw
+        if not os.path.exists(self.path_mod):
+            self.path_mod = self.path_original
+
+    def __str__(self):
+        return f"{self.name} at {self.path_original}"
+
+    def read(self):
+        with open(self.path_original, "rb") as f:
+            bytes = f.read()
+            return decompress_bytes(bytes)
+
+    def readMod(self):
+        with open(self.path_mod, "rb") as f:
+            bytes = f.read()
+            return decompress_bytes(bytes)
+
+    def write(self, data, do_compress_nlz11 = True):
+        # create a "loaded_map" folder if nonexistent
+        os.makedirs(self.path_modw_folder, exist_ok=True)
+        with open(self.path_modw, "wb") as f:
+            if do_compress_nlz11:
+                try:
+                    compress_nlz11(data, f)
+                    print(f"Successfully exported {self.name} at {self.path_modw}")
+                except Exception as e:
+                    print(f"Error compressing data for {self.name}: {e}")
+            else:
+                try:
+                    f.write(data)
+                    print(f"Successfully wrote data for {self.name} at {self.path_modw}")
+                except Exception as e:
+                    print(f"Error writing data for {self.name}: {e}")
+
+    def basePath(self):
+        return self.path_original
+    
+    def modPath(self):
+        return self.path_mod
 
 class Event:
     def __init__(self, time):

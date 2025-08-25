@@ -13,14 +13,19 @@ import sys
 import os
 import csv
 
+from ccChartEdit import ccfile
+
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         self.are_paths_valid = False
         self.rippath = None
         self.modpath = None
 
+        self.current_ccfile = None
+
         self.main_layout = QHBoxLayout()
         self.left_panel = QVBoxLayout()
+
 
 
         self.group_input_paths = QGroupBox("Input Paths")
@@ -74,24 +79,77 @@ class Ui_MainWindow(object):
         self.chart_list.setStyleSheet("QTableWidget::item:selected { background-color: rgba(100, 100, 100, 155); }")
         self.chart_list.setSelectionBehavior(QTableWidget.SelectRows)
 
+        self.layout_song_selection_top = QVBoxLayout()
+        self.layout_song_selection.addLayout(self.layout_song_selection_top)
+
         self.button_select_chart = QPushButton("Select Chart")
         self.button_select_chart.pressed.connect(self.load_chart_data)
-        self.layout_song_selection.addWidget(self.button_select_chart)
+        self.layout_song_selection_top.addWidget(self.button_select_chart)
         self.layout_song_selection.addWidget(self.chart_list)
 
 
         self.layout_chart_data = QGridLayout()
 
-        self.label_param1 = QLabel("Unknown 1:")
-        self.layout_chart_data.addWidget(self.label_param1, 0, 0)
 
         #self.only_int = QIntValidator()
 
-        self.chart_param1 = QLineEdit()
-        self.layout_chart_data.addWidget(self.chart_param1, 0, 1)
-        #self.chart_param1.setValidator(self.only_int)
 
+        self.label_chart_type_flag = QLabel("xMS Flag")
+        self.layout_chart_data.addWidget(self.label_chart_type_flag, 0, 0)
+        self.chart_type_flag = QLineEdit()
+        self.layout_chart_data.addWidget(self.chart_type_flag, 0, 1)
 
+        self.label_param2 = QLabel("Unknown 2:")
+        self.layout_chart_data.addWidget(self.label_param2, 1, 0)
+        self.chart_param2 = QLineEdit()
+        self.layout_chart_data.addWidget(self.chart_param2, 1, 1)
+
+        self.label_param3 = QLabel("Unknown 3:")
+        self.layout_chart_data.addWidget(self.label_param3, 2, 0)
+        self.chart_param3 = QLineEdit()
+        self.layout_chart_data.addWidget(self.chart_param3, 2, 1)
+
+        self.label_param4 = QLabel("Unknown 4:")
+        self.layout_chart_data.addWidget(self.label_param4, 3, 0)
+        self.chart_param4 = QLineEdit()
+        self.layout_chart_data.addWidget(self.chart_param4, 3, 1)
+
+        self.label_param5 = QLabel("Unknown 5:")
+        self.layout_chart_data.addWidget(self.label_param5, 4, 0)
+        self.chart_param5 = QLineEdit()
+        self.layout_chart_data.addWidget(self.chart_param5, 4, 1)
+
+        self.label_param6 = QLabel("Unknown 6:")
+        self.layout_chart_data.addWidget(self.label_param6, 5, 0)
+        self.chart_param6 = QLineEdit()
+        self.layout_chart_data.addWidget(self.chart_param6, 5, 1)
+
+        self.label_param7 = QLabel("Unknown 7:")
+        self.layout_chart_data.addWidget(self.label_param7, 6, 0)
+        self.chart_param7 = QLineEdit()
+        self.layout_chart_data.addWidget(self.chart_param7, 6, 1)
+
+        self.label_param8 = QLabel("Unknown 8:")
+        self.layout_chart_data.addWidget(self.label_param8, 7, 0)
+        self.chart_param8 = QLineEdit()
+        self.layout_chart_data.addWidget(self.chart_param8, 7, 1)
+
+        self.label_param9 = QLabel("Unknown 9:")
+        self.layout_chart_data.addWidget(self.label_param9, 8, 0)
+        self.chart_param9 = QLineEdit()
+        self.layout_chart_data.addWidget(self.chart_param9, 8, 1)
+
+        self.label_param10 = QLabel("Unknown 10:")
+        self.layout_chart_data.addWidget(self.label_param10, 9, 0)
+        self.chart_param10 = QLineEdit()
+        self.layout_chart_data.addWidget(self.chart_param10, 9, 1)
+
+        self.main_layout.addLayout(self.layout_chart_data)
+        self.label_param4 = QLabel("Unknown 4:")
+        self.layout_chart_data.addWidget(self.label_param4, 3, 0)
+
+        self.chart_param4 = QLineEdit()
+        self.layout_chart_data.addWidget(self.chart_param4, 3, 1)
 
         self.main_layout.addLayout(self.layout_chart_data)
 
@@ -101,26 +159,32 @@ class Ui_MainWindow(object):
 
 
     def load_chart_data(self):
-        # Import ccfile class from main.py
-        from main import ccfile
-        # Get the selected row in the chart_list
         selected = self.chart_list.currentRow()
         if selected < 0:
             self.feedback("No chart selected.")
             return
         # Get the fileid from the hidden column 1
-        fileid_item = self.chart_list.item(selected, 1)
-        if not fileid_item:
-            self.feedback("No file ID found for selected chart.")
-            return
-        fileid = fileid_item.text()
-        # Build the file path using ripped base path
-        chart_file_path = f"{self.rippath}/music/{fileid}/trigger002.bytes.lz"
-        # Use ccfile to read the bytes
-        chart_file = ccfile(f"music/{fileid}/trigger002.bytes.lz")
+        fileid_item = self.chart_list.item(selected, 1).text()
+        self.current_ccfile = ccfile(
+            "trigger002.bytes.lz",
+            self.rippath,
+            fileid_item,
+            self.modpath
+        )
+
+    
         try:
-            data = chart_file.read()
-            self.chart_param1.setText(f"Loaded {len(data)} bytes from {fileid}")
+            data = self.current_ccfile.read()
+            self.chart_type_flag.setText(str(int.from_bytes(data[:4], "little")))
+            self.chart_param2.setText(str(int.from_bytes(data[4:8], "little")))
+            self.chart_param3.setText(str(int.from_bytes(data[8:12], "little")))
+            self.chart_param4.setText(str(int.from_bytes(data[12:16], "little")))
+            self.chart_param5.setText(str(int.from_bytes(data[16:20], "little")))
+            self.chart_param6.setText(str(int.from_bytes(data[20:24], "little")))
+            self.chart_param7.setText(str(int.from_bytes(data[24:28], "little")))
+            self.chart_param8.setText(str(int.from_bytes(data[28:32], "little")))
+            self.chart_param9.setText(str(int.from_bytes(data[32:36], "little")))
+            self.chart_param10.setText(str(int.from_bytes(data[36:40], "little")))
         except Exception as e:
             self.feedback(f"Failed to load chart data: {e}")
 
@@ -206,6 +270,8 @@ class Ui_MainWindow(object):
             self.chart_list.setRowCount(0)
 
 def main():
+    
+
     app = QApplication(sys.argv)
     window = QWidget()
     ui = Ui_MainWindow()
