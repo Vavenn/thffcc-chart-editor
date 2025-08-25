@@ -1,5 +1,6 @@
 # le thffcc map editor
 from ast import dump
+from math import pi
 import shutil
 import os
 import matplotlib.pyplot as plt
@@ -10,8 +11,7 @@ from parser import *
 from ccChartEdit import ExtractEvents, ExportEvents
 from midiTools import ExportMidi, ImportMidi
 
-import matplotlib.pyplot as plt
-
+from ui import __main__ as ui_main
 
 import pathlib
 current_path = pathlib.Path(__file__).parent.resolve()
@@ -50,14 +50,22 @@ class ccfile:
             bytes = f.read()
             return decompress_bytes(bytes)
 
-    def write(self, data, compress_nlz11 = True):
+    def write(self, data, do_compress_nlz11 = True):
         # create a "loaded_map" folder if nonexistent
         os.makedirs(self.path_modw_folder, exist_ok=True)
         with open(self.path_modw, "wb") as f:
-            if compress_nlz11:
-                compress_nlz11(data, f)
+            if do_compress_nlz11:
+                try:
+                    compress_nlz11(data, f)
+                    print(f"Successfully exported {self.name} at {self.path_modw}")
+                except Exception as e:
+                    print(f"Error compressing data for {self.name}: {e}")
             else:
-                f.write(data)
+                try:
+                    f.write(data)
+                    print(f"Successfully wrote data for {self.name} at {self.path_modw}")
+                except Exception as e:
+                    print(f"Error writing data for {self.name}: {e}")
 
     def checkBackup(self):
         if not os.path.exists(self.path_backup):
@@ -141,39 +149,12 @@ current_file = um_chart_file
 
 test_data = current_file.read()
 dump_path = f"{current_path}/{loaded_map} - {(current_file.name.replace('.lz', '.bin'))}"
-print(dump_path)
 with open(dump_path, "wb") as dummy_file:
     dummy_file.write(test_data)
 
-Events = ExtractEvents(test_data)
-
-lanes = [event.lane for event in Events]
-time = [event.time for event in Events]
-event_types = [event.event_type for event in Events]
-
-plt.figure(figsize=(10, 4))
-
-colors = {
-    "tap": "red",
-    "hold start": "green",
-    "hold end": "green",
-    "hold slide": "blue",
-    "slide": "yellow",
-    "unknown": "black",
-    # Add more event types and colors as needed
-}
 
 
 
-
-
-plt.gca().invert_yaxis()
-point_colors = [colors.get(et, "black") for et in event_types]
-plt.scatter(time, lanes, s=10, c=point_colors)
-
-
-plt.tight_layout()
-# plt.show()
 
 # current_file.write(test_data)
 

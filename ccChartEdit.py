@@ -1,7 +1,9 @@
 from compress import compress_nlz11
 
 
-header = bytearray.fromhex("01 00 00 00 15 25 00 00 00 00 00 00 15 25 00 00 E0 14 00 00 BF 16 00 00 BF 16 00 00 1C 1B 00 00 DD 19 00 00 DD 01 00 00")
+header = bytearray.fromhex(
+    "01 00 00 00 15 25 00 00 00 00 00 00 15 25 00 00 E0 14 00 00 BF 16 00 00 BF 16 00 00 1C 1B 00 00 DD 19 00 00 DD 01 00 00"
+    )
 
 class Event:
     def __init__(self, time):
@@ -11,6 +13,7 @@ class Event:
         self.type = type
         self.event_type = None
         self.direction = 0
+        self.lane_bytes = (0).to_bytes(1, byteorder='little')
 
     def set_rotation(self, value):
         self.direction = round(value/45)
