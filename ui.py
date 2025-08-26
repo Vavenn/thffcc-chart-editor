@@ -2,7 +2,7 @@
 from PySide6.QtWidgets import (
     QApplication, QPushButton, QSizePolicy, QWidget, QLineEdit, QLabel, 
     QVBoxLayout, QTextEdit, QGridLayout, QGroupBox, QHBoxLayout, QTableWidget,
-    QTableWidgetItem
+    QTableWidgetItem, QCheckBox, QComboBox
 )
 from PySide6.QtCore import (QCoreApplication, QDate, QDateTime, QLocale,
     QMetaObject, QObject, QPoint, QRect,
@@ -78,6 +78,7 @@ class Ui_MainWindow(object):
         self.chart_list.verticalHeader().setVisible(False)
         self.chart_list.setStyleSheet("QTableWidget::item:selected { background-color: rgba(100, 100, 100, 155); }")
         self.chart_list.setSelectionBehavior(QTableWidget.SelectRows)
+        self.chart_list.clicked.connect(self.chart_list_load_chart_data)
 
         self.layout_song_selection_top = QVBoxLayout()
         self.layout_song_selection.addLayout(self.layout_song_selection_top)
@@ -87,6 +88,15 @@ class Ui_MainWindow(object):
         self.layout_song_selection_top.addWidget(self.button_select_chart)
         self.layout_song_selection.addWidget(self.chart_list)
 
+        self.tickmark_autoselect = QCheckBox("<- Bitch Box of not being aligned")
+        self.layout_song_selection_top.addWidget(self.tickmark_autoselect)
+
+        self.diff_select = QComboBox()
+        self.layout_song_selection_top.addWidget(self.diff_select)
+        self.diff_select.addItem("Normal")
+        self.diff_select.addItem("Extreme")
+        self.diff_select.addItem("Ultimate")
+        self.diff_select.currentIndexChanged.connect(self.chart_list_load_chart_data)
 
         self.layout_chart_data = QGridLayout()
 
@@ -153,10 +163,24 @@ class Ui_MainWindow(object):
 
         self.main_layout.addLayout(self.layout_chart_data)
 
+        self.layout_io = QGridLayout()
+        self.main_layout.addLayout(self.layout_io)
+
+        self.label_export_path = QLabel("Export Path:")
+        self.layout_io.addWidget(self.label_export_path, 0, 0)
+
+        self.export_path = QLineEdit()
+        self.layout_io.addWidget(self.export_path, 0, 1)
+
         self.retrieve_settings()
 
 
 
+
+    def chart_list_load_chart_data(self):
+        if self.tickmark_autoselect.isChecked():
+            if self.chart_list.selectedIndexes():
+                self.load_chart_data()
 
     def load_chart_data(self):
         selected = self.chart_list.currentRow()
@@ -165,8 +189,16 @@ class Ui_MainWindow(object):
             return
         # Get the fileid from the hidden column 1
         fileid_item = self.chart_list.item(selected, 1).text()
+
+        if self.diff_select.currentText() == "Normal":
+            ms_diff = "trigger000.bytes.lz"
+        elif self.diff_select.currentText() == "Extreme":
+            ms_diff = "trigger001.bytes.lz"
+        elif self.diff_select.currentText() == "Ultimate":
+            ms_diff = "trigger002.bytes.lz"
+
         self.current_ccfile = ccfile(
-            "trigger002.bytes.lz",
+            ms_diff,
             self.rippath,
             fileid_item,
             self.modpath
