@@ -90,6 +90,4 @@ if __name__ == "__main__":
     )
 
     events = parse_chart(raw_data)
-    for e in events:
-        print(e)
     plot_chart(events)

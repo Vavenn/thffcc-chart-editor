@@ -3,9 +3,15 @@ import os
 import shutil
 from lzss3 import decompress_bytes
 
-header = bytearray.fromhex(
-    "01 00 00 00 15 25 00 00 00 00 00 00 15 25 00 00 E0 14 00 00 BF 16 00 00 BF 16 00 00 1C 1B 00 00 DD 19 00 00 DD 01 00 00"
-    )
+# header = bytearray.fromhex(
+#     "01 00 00 00 15 25 00 00 00 00 00 00 15 25 00 00 E0 14 00 00 BF 16 00 00 BF 16 00 00 1C 1B 00 00 DD 19 00 00 DD 01 00 00"
+#     )
+
+dict_mstype = {
+    0: "FMS",
+    1: "BMS",
+    2: "EMS",
+}
 
 class ccfile:
     def __init__(self, name, base_path, loaded_map,mod_base_path):
@@ -54,24 +60,32 @@ class ccfile:
         return self.path_mod
 
 class Event:
-    def __init__(self, time):
+    def __init__(self, time, ms_type):
         self.time = time
         self.time_sec = time/60
         self.time_bytes = int(time).to_bytes(4, byteorder='little')
-        self.type = type
         self.event_type = None
         self.direction = 0
         self.lane_bytes = (0).to_bytes(1, byteorder='little')
+        self.fms_height = 0
+        self.fms_height_bytes = (0).to_bytes(1, byteorder='little')
+        self.ms_type = ms_type
 
     def set_rotation(self, value):
         self.direction = round(value/45)
         self.rotation = self.direction*45
         self.rotation_bytes = self.rotation.to_bytes(2, byteorder='little')
 
+    def set_fms_height(self, value):
+        self.fms_height = value
+        self.fms_height_bytes = value.to_bytes(1, byteorder='little')
 
     def set_lane(self, value):
         self.lane = value
-        self.lane_bytes = value.to_bytes(1, byteorder='little')
+        if self.lane == -1:
+            self.lane_bytes = (0).to_bytes(1, byteorder='little')
+        else:
+            self.lane_bytes = value.to_bytes(1, byteorder='little')
 
     def set_type(self, value):
         match value:
@@ -81,6 +95,8 @@ class Event:
                 self.event_type = "slide"
             case 2:
                 self.event_type = "hold start"
+            case 3:
+                self.event_type = "hold midpoint"
             case 4:
                 self.event_type = "hold end"
             case 5:
@@ -89,54 +105,79 @@ class Event:
                 self.event_type = "unknown"
         self.type_bytes = value.to_bytes(1, byteorder='little')
 
+def MSType(byte):
+    int_val = int.from_bytes(byte, "little")
+    return dict_mstype.get(int_val, "unknown")
 
-def BytesToEvent(bytes):
-    time = bytes[0]+bytes[1]*256
-    lane = bytes[12]
-    event_type = bytes[4]
-    extra_data = bytes[16] + bytes[17] * 256
+def ChunkToEvents(data):
+    ms_type = MSType(data[0:4])
+    body_data = data[40:]
+    events = []
+    for i in range(0, len(body_data), 24):
+        chunk = body_data[i:i+24]
+        if len(chunk) == 24:
+            events.append(BytesToEvent(chunk, ms_type))
+    return events
 
-    event = Event(time)
-    event.set_lane(lane)
+def BytesToEvent(bytes, ms_type):
+    time = int.from_bytes(bytes[0:4], byteorder='little')
+    event_type = int.from_bytes(bytes[4:8], byteorder='little')
+    slide_rotation = int.from_bytes(bytes[16:18], byteorder='little')
+
+    event = Event(time, ms_type)
     event.set_type(event_type)
-    event.set_rotation(extra_data)
+    event.set_rotation(slide_rotation)
+
+    if ms_type == "BMS":
+        lane = int.from_bytes(bytes[12:16], byteorder='little')
+        event.set_lane(lane)
+        
+    if ms_type == "FMS":
+        height = int.from_bytes(bytes[12:16], byteorder='little')
+        # print(height)
+        event.set_fms_height(height)
+
+    if ms_type == "EMS":
+        print("EMS event detected")
+
     return event
 
-def EventToBytes(event):
+def EventToBytes(event, ms_type):
     bytes = bytearray(24)
     bytes[0:4] = event.time_bytes
-    bytes[12:13] = event.lane_bytes
     bytes[4:5] = event.type_bytes
     bytes[16:18] = event.rotation_bytes
+
+    if ms_type == "BMS":
+        bytes[12:13] = event.lane_bytes
+
+    if ms_type == "FMS":
+        bytes[12:13] = event.fms_height_bytes
+
     return bytes
 
 
 def ExtractEvents(raw_bytes):
-    events = []
-    data = raw_bytes[40:]
-
-    for i in range(0, len(data), 24):
-        chunk = data[i:i+24]
-        if len(chunk) == 24:
-            events.append(BytesToEvent(chunk))
+    events = ChunkToEvents(raw_bytes)
     return events
 
-def CompileEvents(events):
+def CompileEvents(events, ms_type):
     compiled = bytearray()
     for event in events:
-        compiled.extend(EventToBytes(event))
+        compiled.extend(EventToBytes(event, ms_type))
     return compiled
 
-def ExportEvents(events):
+def ExportEvents(events, header_data):
     all = bytearray()
-    all.extend(header)
-    all.extend(CompileEvents(events))
+    all.extend(header_data)
+    ms_type = MSType(header_data[0:4])
+    all.extend(CompileEvents(events, ms_type))
     return all
 
-def CreateChart(events, output_file):
+def CreateChart(events, output_file, header_data):
     try:
         with open(output_file, "wb") as f:
-            compress_nlz11(ExportEvents(events), f)
+            compress_nlz11(ExportEvents(events, header_data), f)
             print(f"Chart created successfully: {output_file}")
     except Exception as e:
         print(f"Error creating chart: {e}")
