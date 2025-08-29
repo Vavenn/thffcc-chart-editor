@@ -82,12 +82,3 @@ def plot_chart(events, title="Rhythm Game Chart"):
     plt.ylabel("Time (steps)")
     plt.title(title)
     plt.show()
-
-
-if __name__ == "__main__":
-    raw_data = bytes.fromhex(
-        "11 E0 2C 00 03 01 00 00 00 15 25 20 04 60 07 02 E0 14 00 00 BF 16"
-    )
-
-    events = parse_chart(raw_data)
-    plot_chart(events)

@@ -1,11 +1,6 @@
-# used http://code.google.com/p/u-lzss/source/browse/trunk/js/lib/ulzss.js as
-# a guide
-
-
-
-# YOINKED THIS FROM https://github.com/magical/nlzss
-# idk how to do links and stuff -w-
-
+# LZSS compression library
+# Based on https://github.com/magical/nlzss
+# Used http://code.google.com/p/u-lzss/source/browse/trunk/js/lib/ulzss.js as a guide
 
 from sys import stderr
 
