@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 
-
-# YOINKED THIS FROM https://github.com/magical/nlzss
-# idk how to do links and stuff -w-
+# LZSS decompression library
+# Based on https://github.com/magical/nlzss
 
 
 import sys

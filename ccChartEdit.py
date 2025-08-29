@@ -1,11 +1,6 @@
 from compress import compress_nlz11
 import os
-import shutil
 from lzss3 import decompress_bytes
-
-# header = bytearray.fromhex(
-#     "01 00 00 00 15 25 00 00 00 00 00 00 15 25 00 00 E0 14 00 00 BF 16 00 00 BF 16 00 00 1C 1B 00 00 DD 19 00 00 DD 01 00 00"
-#     )
 
 dict_mstype = {
     0: "FMS",
@@ -134,7 +129,6 @@ def BytesToEvent(bytes, ms_type):
         
     if ms_type == "FMS":
         height = int.from_bytes(bytes[12:16], byteorder='little')
-        # print(height)
         event.set_fms_height(height)
 
     if ms_type == "EMS":

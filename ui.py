@@ -1,5 +1,4 @@
 
-from email.charset import QP
 from PySide6.QtWidgets import (
     QApplication, QPushButton, QSizePolicy, QWidget, QLineEdit, QLabel, 
     QVBoxLayout, QTextEdit, QGridLayout, QGroupBox, QHBoxLayout, QTableWidget,
@@ -9,12 +8,9 @@ from PySide6.QtCore import (QCoreApplication, QDate, QDateTime, QLocale,
     QMetaObject, QObject, QPoint, QRect,
     QSize, QTime, QUrl, Qt, QSettings, QEvent)
 from PySide6.QtGui import (QBrush, QColor)
-from matplotlib.pylab import f
 import sys
 import os
 import csv
-
-from numpy import byte
 
 from midiTools import ExportMidi, ImportMidi
 from ccChartEdit import ExportEvents, ccfile, ChunkToEvents, MSType
@@ -417,8 +413,6 @@ class Ui_MainWindow(object):
             self.chart_list.setRowCount(0)
 
 def main():
-    
-
     app = QApplication(sys.argv)
     window = QWidget()
     ui = Ui_MainWindow()
@@ -426,7 +420,6 @@ def main():
     window.setLayout(ui.main_layout)
     window.resize(1200, 800)
     window.show()
-    sys.exit(app.exec())
     sys.exit(app.exec())
 
 if __name__ == "__main__":

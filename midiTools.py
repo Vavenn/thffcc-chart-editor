@@ -1,9 +1,6 @@
-from operator import is_
-from sched import Event
 import mido
 from midiutil import MIDIFile
 from ccChartEdit import Event as ccEvent
-import os
 
 
 event_to_pitch = {
