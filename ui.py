@@ -1,8 +1,9 @@
 
+from email.charset import QP
 from PySide6.QtWidgets import (
     QApplication, QPushButton, QSizePolicy, QWidget, QLineEdit, QLabel, 
     QVBoxLayout, QTextEdit, QGridLayout, QGroupBox, QHBoxLayout, QTableWidget,
-    QTableWidgetItem, QCheckBox, QComboBox
+    QTableWidgetItem, QCheckBox, QComboBox, QFileDialog
 )
 from PySide6.QtCore import (QCoreApplication, QDate, QDateTime, QLocale,
     QMetaObject, QObject, QPoint, QRect,
@@ -13,7 +14,11 @@ import sys
 import os
 import csv
 
-from ccChartEdit import ccfile
+from numpy import byte
+
+from midiTools import ExportMidi, ImportMidi
+from ccChartEdit import ExportEvents, ccfile, ChunkToEvents, MSType
+from lzss3 import decompress_bytes
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
@@ -170,12 +175,118 @@ class Ui_MainWindow(object):
         self.layout_io.addWidget(self.label_export_path, 0, 0)
 
         self.export_path = QLineEdit()
-        self.layout_io.addWidget(self.export_path, 0, 1)
+        self.layout_io.addWidget(self.export_path, 1, 0, 1, 2)
+
+        self.button_export = QPushButton("Export to MIDI")
+        self.button_export.clicked.connect(self.export_midi)
+        self.layout_io.addWidget(self.button_export, 2, 0)
+
+        self.button_raw_export = QPushButton("Export Decrypted")
+        self.button_raw_export.clicked.connect(self.export_raw)
+        self.layout_io.addWidget(self.button_raw_export, 2, 1)
+
+        self.button_import_midi = QPushButton("Import from MIDI")
+        self.layout_io.addWidget(self.button_import_midi, 3, 0, 1, 2)
+        self.button_import_midi.clicked.connect(self.import_midi)
+
+        self.button_decrypt_lz = QPushButton("Decrypt .lz")
+        self.button_decrypt_lz.clicked.connect(self.decrypt_lz)
+        self.layout_io.addWidget(self.button_decrypt_lz, 4, 0, 1, 2)
 
         self.retrieve_settings()
 
+    def decrypt_lz(self):
+        file_name, _ = QFileDialog.getOpenFileName(None , "Open .lz File", "", "LZ Files (*.lz)")
+
+        with open(file_name, "rb") as file:
+            data = file.read()
+
+        out = decompress_bytes(data)
+        with open(file_name.replace(".lz", " - decrypted.bin"), "wb") as f:
+            f.write(out)
+
+    def import_midi(self):
+        if not self.current_ccfile:
+            self.feedback("No chart selected.")
+            return
+
+        file_name, _ = QFileDialog.getOpenFileName(None , "Open MIDI File", "", "MIDI Files (*.mid)")
+        if not file_name:
+            self.feedback("pwease u need a file")
+            return
+
+        header_data, _ = self.load_current_data()
+
+        #load midi file
+        events = ImportMidi(file_name, MSType(header_data[:4]))
+        if not events:
+            self.feedback("Failed to import MIDI file.")
+            return
+
+        self.current_ccfile.write(ExportEvents(events, header_data=header_data))
+        self.feedback(f"Successfully imported MIDI to {self.current_ccfile.name} in {self.diff_select.currentText()} chart.")
+
+    def check_export_path(self, path):
+        out_path = self.export_path.text()
+        if not out_path:
+            self.feedback("Invalid export path.")
+            return
+        if not os.path.exists(out_path):
+            self.feedback("Export path does not exist.")
+            return
+        #save path in settings
+        self.settings = QSettings("Vaven", "ThffccChartEditor")
+        self.settings.setValue("export_path", out_path)
+
+        return out_path
+
+    def export_raw(self):
+        out_path = self.check_export_path(self.export_path.text())
+        file_name = self.chart_list.currentItem().text() + " - " + self.diff_select.currentText() + ".bin"
+
+        header, body = self.load_chart_data()
+        data = header + body
+        if data is None:
+            self.feedback("Failed to load chart data.")
+            return
+
+        with open(os.path.join(out_path, file_name), "wb") as f:
+            f.write(data)
+
+        self.feedback(f"Successfully exported decrypted chart to {os.path.join(out_path, file_name)}")
+
+    def load_current_data(self):
+        if not self.current_ccfile:
+            self.feedback("No chart selected.")
+            return None, None
+
+        header = int(self.chart_type_flag.text()).to_bytes(4, byteorder='little')+int(self.chart_param2.text()).to_bytes(4, byteorder='little')+int(self.chart_param3.text()).to_bytes(4, byteorder='little')+int(self.chart_param4.text()).to_bytes(4, byteorder='little')+int(self.chart_param5.text()).to_bytes(4, byteorder='little')+int(self.chart_param6.text()).to_bytes(4, byteorder='little')+int(self.chart_param7.text()).to_bytes(4, byteorder='little')+int(self.chart_param8.text()).to_bytes(4, byteorder='little')+int(self.chart_param9.text()).to_bytes(4, byteorder='little')+int(self.chart_param10.text()).to_bytes(4, byteorder='little')
+        
+        print(header)
+        try:
+            data = self.current_ccfile.read()
+            return header, data[40:]
+        except Exception as e:
+            self.feedback(f"Failed to load chart data: {e}")
+            return None, None
+
+    def export_midi(self):
+        out_path = self.check_export_path(self.export_path.text())
+        file_name = self.chart_list.currentItem().text() + " - " + self.diff_select.currentText() + ".mid"
 
 
+
+
+        header, body = self.load_current_data()
+        events = header + body
+        if events is None:
+            self.feedback("Failed to load chart data.")
+            return
+
+        
+
+        out_file = ExportMidi(ChunkToEvents(events), out_path + file_name)
+        self.feedback(f"Successfully exported MIDI to {out_file}")
 
     def chart_list_load_chart_data(self):
         if self.tickmark_autoselect.isChecked():
@@ -219,6 +330,8 @@ class Ui_MainWindow(object):
             self.chart_param10.setText(str(int.from_bytes(data[36:40], "little")))
         except Exception as e:
             self.feedback(f"Failed to load chart data: {e}")
+
+        return(data[:40], data[40:])
 
 
     def set_input_paths(self):
@@ -266,6 +379,8 @@ class Ui_MainWindow(object):
         modified_files = settings.value("modified_files", "")
         self.textinput_rip_files.setText(ripped_files)
         self.textinput_mod.setText(modified_files)
+        self.export_path.setText(settings.value("export_path", ""))
+
         self.feedback("Settings retrieved.")
         self.set_input_paths()
 
